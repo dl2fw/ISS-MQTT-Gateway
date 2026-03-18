@@ -129,21 +129,45 @@ void DavisRFM69::init(void) {
  * - read RSSI
  * - get data received to _data Buffer
  ************************************************************/
+
+// fixed loop error !!
+
 void DavisRFM69::interruptHandler(void) {
-  _rssi = readRSSI();  // Read up front when it is most likely the carrier is still up  
-  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {    
-    setMode(RF69_MODE_STANDBY);        
-    select();    // Select RFM69 module, disable interrupts
+  detachInterrupt(_interruptPin);
+  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
+    //ETS_GPIO_INTR_DISABLE();
+    setMode(RF69_MODE_STANDBY);
+    select(); // Select RFM69 module, disable interrupts
     // get data received
     SPI.transfer(REG_FIFO & 0x7f);
     for (byte i = 0; i < DAVIS_PACKET_LEN; i++){
-      _data[i] = reverseBits(SPI.transfer(0));      
-    } 
-    _packetReceived = true;    
+      _data[i] = reverseBits(SPI.transfer(0));
+    }
+    _packetReceived = true;
     _hasCrcError = false;
-    unselect();  // Unselect RFM69 module, enable interrupts
-  }  
+    unselect(); // Unselect RFM69 module, enable interrupts
+    _rssi = readRSSI(); // Read up front when it is most likely the carrier is still up
+  }
+  attachInterrupt(_interruptPin, DavisRFM69::isr0, RISING)
 }
+
+
+//old version with loop error
+//void DavisRFM69::interruptHandler(void) {
+ // _rssi = readRSSI();  // Read up front when it is most likely the carrier is still up  
+ // if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {    
+  //  setMode(RF69_MODE_STANDBY);        
+  //  select();    // Select RFM69 module, disable interrupts
+    // get data received
+  //  SPI.transfer(REG_FIFO & 0x7f);
+  //  for (byte i = 0; i < DAVIS_PACKET_LEN; i++){
+  //    _data[i] = reverseBits(SPI.transfer(0));      
+  //  } 
+  //  _packetReceived = true;    
+  //  _hasCrcError = false;
+  //  unselect();  // Unselect RFM69 module, enable interrupts
+ // }  
+//}
 
 
 /************************************************************
